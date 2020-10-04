@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
-import java.util.HashSet;
 import java.util.List;
 
 @Entity
@@ -19,11 +18,15 @@ public class Department {
 
     @JsonIgnore
     @OneToMany(cascade = CascadeType.ALL)
-    @JoinTable(name = "department_employees", joinColumns = @JoinColumn(name ="department_id"), inverseJoinColumns = @JoinColumn(name ="employee_id"))
+    @JoinTable(name = "department_employees", joinColumns = @JoinColumn(name = "department_id"), inverseJoinColumns = @JoinColumn(name = "employee_id"))
     List<Employee> members;
 
-    public Department(){}
-    public Department(String name){this.name = name;}
+    public Department() {
+    }
+
+    public Department(String name) {
+        this.name = name;
+    }
 
     public String getName() {
         return name;

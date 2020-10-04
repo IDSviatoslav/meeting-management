@@ -3,7 +3,6 @@ package com.meetings.demo.services;
 import com.meetings.demo.DTOs.DepartmentDTO;
 import com.meetings.demo.DTOs.EmployeeDTO;
 import com.meetings.demo.DTOs.MeetingDTO;
-import com.meetings.demo.DTOs.Person;
 import com.meetings.demo.entities.Department;
 import com.meetings.demo.entities.Employee;
 import com.meetings.demo.entities.Meeting;
@@ -33,28 +32,29 @@ public class MainServiceImpl implements MainService {
 
     @Override
     public Iterable<Meeting> filterSearchMeeting(String theme, LocalDateTime fromDate, LocalDateTime toDate, Integer departmentId, Integer employeeId) {
-        return meetingDB.findAll((Specification<Meeting>)(root, cq, cb) ->{
+        return meetingDB.findAll((Specification<Meeting>) (root, cq, cb) -> {
             Predicate p = cb.conjunction();
-            System.out.println("theme =" + theme + " departmentName = " + departmentId + " participantName = " + employeeId);
-            if(Objects.nonNull(theme)){
+            if (Objects.nonNull(theme)) {
                 p = cb.and(p, cb.like(root.get("theme"), "%" + theme + "%"));
             }
             if (Objects.nonNull(fromDate) && Objects.nonNull(toDate) && fromDate.isBefore(toDate)) {
                 p = cb.and(p, cb.between(root.get("time"), fromDate, toDate));
             }
-            if(Objects.nonNull(departmentId)){
+            if (Objects.nonNull(departmentId)) {
                 p = cb.and(p, cb.equal(root.get("departmentId"), departmentId));
             }
-            if (Objects.nonNull(employeeId)){
+            if (Objects.nonNull(employeeId)) {
                 p = cb.and(p, cb.equal(root.join("participantIds"), employeeId));
+                p = cb.or(p, cb.equal(root.get("organizerId"), employeeId));
             }
+            cq.distinct(true);
             return p;
         });
     }
 
     @Override
-    public Iterable<Meeting> findAllMeetings() {
-        return meetingDB.findAll();
+    public Iterable<Meeting> findAllMeetingsOrderByTime() {
+        return meetingDB.findAllByOrderByTimeAsc();
     }
 
     @Override
@@ -93,11 +93,16 @@ public class MainServiceImpl implements MainService {
     }
 
     @Override
+    public List<Meeting> findAllByMeetingTime(LocalDateTime time) {
+        return meetingDB.findAllByTime(time);
+    }
+
+    @Override
     public Optional<Meeting> findByMeetingId(int id) {
         return meetingDB.findById(id);
     }
 
-    public MeetingDTO convertToDTO(Meeting meeting){
+    public MeetingDTO convertToDTO(Meeting meeting) {
         MeetingDTO conversion = new MeetingDTO();
         conversion.setId(meeting.getId());
         conversion.setTheme(meeting.getTheme());
@@ -105,23 +110,20 @@ public class MainServiceImpl implements MainService {
         conversion.setTime(meeting.getTime().format(formatter));
         conversion.setDepartment(convertToDTO(departmentDB.findById(meeting.getDepartmentId()).orElse(null)));
         Employee organizer = employeeDB.findById(meeting.getOrganizerId()).orElse(null);
-        if (organizer!=null) conversion.setOrganizer(convertToDTO(organizer));
-        List<String> participantNames = new ArrayList<>();
+        if (organizer != null) conversion.setOrganizer(convertToDTO(organizer));
         List<EmployeeDTO> participants = new ArrayList<>();
-        for (int participantId : meeting.getParticipantIds()){
+        for (int participantId : meeting.getParticipantIds()) {
             Employee participant = employeeDB.findById(participantId).orElse(null);
-            if (participant!=null){
-                participantNames.add(participant.getSurname() + " " + participant.getName() + " " + participant.getPatronymic());
+            if (participant != null) {
                 participants.add(convertToDTO(participant));
             }
         }
-        conversion.setParticipantNames(participantNames);
         conversion.setParticipants(participants);
-        conversion.setCount(participantNames.size());
+        conversion.setCount(participants.size());
         return conversion;
     }
 
-    public EmployeeDTO convertToDTO(Employee employee){
+    public EmployeeDTO convertToDTO(Employee employee) {
         String surname = employee.getSurname();
         String name = employee.getName();
         String patronymic = employee.getPatronymic();
@@ -129,42 +131,20 @@ public class MainServiceImpl implements MainService {
         conversion.setId(employee.getId());
         conversion.setName(surname + " " + name + " " + patronymic);
         conversion.setShortName(surname + " " + name.charAt(0) + '.' + patronymic.charAt(0));
-        if (employee.getDepartment()!=null) conversion.setDepartment(employee.getDepartment().getName());
+        if (employee.getDepartment() != null) conversion.setDepartment(employee.getDepartment().getName());
         conversion.setAge((int) YEARS.between(employee.getDateOfBirth(), LocalDate.now()));
         return conversion;
     }
 
-    public DepartmentDTO convertToDTO(Department department){
+    public DepartmentDTO convertToDTO(Department department) {
         DepartmentDTO conversion = new DepartmentDTO();
         conversion.setId(department.getId());
         conversion.setName(department.getName());
         List<EmployeeDTO> departmentMembers = new ArrayList<>();
-        for (Employee employee : department.getMembers()){
-//            int id = employee.getId();
-//            String fullName = employee.getSurname() + " " + employee.getName() + " " + employee.getPatronymic();
-//            Person person = new Person();
-//            person.setId(id);
-//            person.setName(fullName);
+        for (Employee employee : department.getMembers()) {
             departmentMembers.add(convertToDTO(employee));
         }
         conversion.setMembers(departmentMembers);
         return conversion;
     }
-
-//
-//    @Override
-//    public List<StudentDTO> getStudents(Date fromDate, Date toDate, String name, Pageable pageable) {
-//        List<Students> students = studentRepository.findAll((Specification<Students>) (root, cq, cb) -> {
-//            Predicate p = cb.conjunction();
-//            if (Objects.nonNull(fromDate) && Objects.nonNull(toDate) && fromDate.before(toDate)) {
-//                p = cb.and(p, cb.between(root.get("createdDate"), fromDate, toDate));
-//            }
-//            if (!StringUtils.isEmpty(name)) {
-//                p = cb.and(p, cb.like(root.get("name"), "%" + name + "%"));
-//            }
-//            cq.orderBy(cb.desc(root.get("name")), cb.asc(root.get("id")));
-//            return p;
-//        }, pageable).getContent();
-//        return StudentConverter.convertToStudentDTO(students);
-//    }
 }

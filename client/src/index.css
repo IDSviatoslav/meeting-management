@@ -27,5 +27,20 @@ code {
 .wrapper {
   padding-top: 5rem;
   margin: 0 auto;
-  width: 600px;
+  width: 800px;
+}
+
+.link {
+  text-decoration: underline;
+  color: blue;
+}
+
+.button-divider {
+  width: 5px;
+  height: auto;
+  display: inline-block;
+}
+
+label {
+  margin-bottom: 10px;
 }

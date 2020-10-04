@@ -13,7 +13,6 @@ function App() {
       setWorkMode("EDIT");
       setMeetingId(id);
     }
-    console.log("in app id: " + id);
   }
 
   function viewMeetings() {

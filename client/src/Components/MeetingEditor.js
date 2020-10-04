@@ -4,15 +4,10 @@ import DateTimePicker from "react-datetime-picker";
 function MeetingEditor(props) {
   const url = "http://127.0.0.1:8080";
 
-  var methodType = "POST";
-
-  var selectedDepId;
-  var selectedOrgId;
-
-  const [meetingTime, setMeetingTime] = useState([new Date()]);
+  const [meetingTime, setMeetingTime] = useState();
   const [meetingParticipants, setMeetingParticipants] = useState([]);
   const [meetingDepartmentId, setMeetingDepartmentId] = useState();
-  const [meetingOrganizerId, setMeetingOrganizerId] = useState();
+  const [meetingOrganizer, setMeetingOrganizer] = useState();
   const [meetingTheme, setMeetingTheme] = useState();
 
   const [receivedEmployees, setReceivedEmployees] = useState([]);
@@ -22,20 +17,15 @@ function MeetingEditor(props) {
   );
 
   useEffect(() => {
-    console.log("id: " + props.meetingId + " workMode: " + props.workMode);
     getDepartmentsQuery();
     getEmployeesQuery();
     if (props.workMode === "CREATE") {
-    } else if (props.workMode === "EDIT") {
-      if (props.meetingId != null) {
-        console.log("get one meeting");
-        getMeetingQuery(props.meetingId);
-      }
+    } else if (props.workMode === "EDIT" && props.meetingId != null) {
+      getMeetingQuery(props.meetingId);
     }
   }, [props.workMode]);
 
-  const getEmployeesQuery = (event) => {
-    console.log("in empl querry");
+  const getEmployeesQuery = () => {
     const requestOptions = {
       method: "GET",
       headers: {
@@ -46,14 +36,11 @@ function MeetingEditor(props) {
       .then((response) => response.json())
       .then((response) => {
         setReceivedEmployees(response);
-        console.log("receivedEmpl: ");
-        console.log(response);
       })
       .catch((err) => console.log("Error " + err));
   };
 
   const getDepartmentsQuery = (event) => {
-    console.log("in dep querry");
     const requestOptions = {
       method: "GET",
       headers: {
@@ -63,14 +50,12 @@ function MeetingEditor(props) {
     fetch(url + "/departments", requestOptions)
       .then((response) => response.json())
       .then((response) => {
-        console.log(response);
         setReceivedDepartments(response);
       })
       .catch((err) => console.log("Error " + err));
   };
 
   const getMeetingQuery = (id) => {
-    console.log("in meet querry id querry");
     const requestOptions = {
       method: "GET",
       headers: {
@@ -80,75 +65,52 @@ function MeetingEditor(props) {
     fetch(url + "/meeting" + "/" + id, requestOptions)
       .then((response) => response.json())
       .then((response) => {
-        console.log("MEETING:");
-        console.log(response);
         setMeetingTheme(response.theme);
         setMeetingTime(convertStringToDate(response.time));
         setMeetingParticipants(response.participants);
         setMeetingDepartmentId(response.department.id);
+        setMeetingOrganizer(response.organizer);
         setSelectValueById("dep-select", response.department.name);
         setReceivedDepartmentMembers(response.department.members);
-
-        // var organizer = response.department.members.find((employee) => {
-        //   console.log(
-        //     "in find empId: " + employee.id + " orgId: " + response.organizerId
-        //   );
-        //   return employee.id == response.organizerId;
-        // });
-
-        // console.log("organizer: " + organizer);
-
-        // console.log("organizer id: " + response.organizerId);
-        // setSelectValueById(
-        //   "org-select",
-        //   response.department.members.find((employee) => {
-        //     return employee.id == response.organizerId;
-        //   }).name
-        // );
-        // setMeetingOrganizerId(response.organizerId);
         setSelectValueById("org-select", response.organizer.name);
       })
       .catch((err) => console.log("Error " + err));
   };
 
-  const createMeetingQuery = (event) => {
+  const createOrUpdateMeetingQuery = (event) => {
     event.preventDefault();
-
-    // selectedDepId = getIdFromSelect("dep-select");
-    // selectedOrgId = getIdFromSelect("org-select");
+    var methodType = props.workMode === "CREATE" ? "POST" : "PUT";
     var meetParticipantIds = [];
-    console.log(
-      "theme = " +
-        meetingTheme +
-        " depId" +
-        selectedDepId +
-        " orgId" +
-        selectedOrgId +
-        " timetype = " +
-        typeof meetingTime
-    );
 
-    meetingParticipants.map((employee) => {
-      meetParticipantIds.push(employee.id);
-    });
+    if (validateCompletenessOfInput() == false) {
+      alert("Не все поля заполнены");
+      return;
+    }
+
+    meetingParticipants.map((employee) => meetParticipantIds.push(employee.id));
 
     const requestOptions = {
-      method: "POST",
+      method: methodType,
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        id: props.meetingId,
         theme: meetingTheme,
         time: formatDate(meetingTime),
         departmentId: meetingDepartmentId,
-        organizerId: meetingOrganizerId,
+        organizerId: meetingOrganizer.id,
         participantIds: meetParticipantIds,
       }),
     };
-    //console.log("body: " + requestOptions.body);
 
     fetch(url + "/meeting", requestOptions)
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) {
+          console.log("fail");
+          alert(response.json());
+        }
+      })
       .catch((err) => console.log("Error: " + err));
   };
 
@@ -170,7 +132,6 @@ function MeetingEditor(props) {
 
   function setSelectValueById(id, value) {
     let select = document.getElementById(id);
-    //select.selectedIndex =
     select.value = value;
   }
 
@@ -182,6 +143,7 @@ function MeetingEditor(props) {
       var entry = receivedEmployees.find((employee) => {
         return employee.id == employeeId;
       });
+
       setMeetingParticipants([...meetingParticipants, entry]);
       var index = receivedEmployees.indexOf(entry);
       var tempArr = receivedEmployees;
@@ -208,11 +170,12 @@ function MeetingEditor(props) {
     var organizerId = event.target.options[selectedIndex].getAttribute(
       "id-key"
     );
-    setMeetingOrganizerId(organizerId);
 
     var entry = receivedEmployees.find((employee) => {
       return employee.id == organizerId;
     });
+    setMeetingOrganizer(entry);
+
     var index = receivedEmployees.indexOf(entry);
     var tempArr = receivedEmployees;
     if (index !== -1) {
@@ -249,22 +212,30 @@ function MeetingEditor(props) {
     return mydate;
   }
 
+  function validateCompletenessOfInput() {
+    return (
+      meetingTheme != null &&
+      meetingTime != null &&
+      meetingDepartmentId != null &&
+      meetingOrganizer != null &&
+      meetingParticipants != null
+    );
+  }
+
   return (
     <form class="flexbox-vertical">
       <label class="flexbox-horizontal">
-        <l1 class="bold-text">Тема</l1>
+        <label class="bold-text">Тема</label>
         <input type="text" onChange={changeTheme} value={meetingTheme} />
       </label>
 
       <label class="flexbox-horizontal">
-        <l1 class="bold-text">Время проведения</l1>
-        <div>
-          <DateTimePicker
-            id="time-form"
-            value={meetingTime}
-            onChange={setMeetingTime}
-          />
-        </div>
+        <label class="bold-text">Время проведения</label>
+        <DateTimePicker
+          id="time-form"
+          value={meetingTime}
+          onChange={setMeetingTime}
+        />
       </label>
 
       <label class="flexbox-horizontal">
@@ -295,13 +266,20 @@ function MeetingEditor(props) {
         <l1 id="title">Участники</l1>
         <table id="participants">
           <tbody>
+            <tr>
+              <th>Имя</th>
+              <th>Возраст</th>
+              <th>Подразделение</th>
+            </tr>
             {meetingParticipants.map((employee) => {
               return (
                 <tr key={employee.id}>
                   <td>{employee.name}</td>
                   <td>{employee.age}</td>
                   <td>{employee.department}</td>
-                  <td onClick={() => deleteParticipant(employee)}>удалить</td>
+                  <td class="link" onClick={() => deleteParticipant(employee)}>
+                    удалить
+                  </td>
                 </tr>
               );
             })}
@@ -324,8 +302,11 @@ function MeetingEditor(props) {
       </label>
 
       <label>
-        <button onClick={createMeetingQuery}>Сохранить</button>
-        <button onClick={() => props.ViewMeetings()}>Не сохранять</button>
+        <button onClick={createOrUpdateMeetingQuery}>Сохранить</button>
+        <div class="button-divider" />
+        <button onClick={() => props.ViewMeetings()}>
+          Назад (не сохранять)
+        </button>
       </label>
     </form>
   );

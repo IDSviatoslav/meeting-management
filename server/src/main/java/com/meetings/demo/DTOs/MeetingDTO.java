@@ -1,15 +1,11 @@
 package com.meetings.demo.DTOs;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 public class MeetingDTO {
     int id;
     String theme;
-    //String department;
-    //String organizer;
     EmployeeDTO organizer;
-    List<String> participantNames;
     String time;
     int count;
 
@@ -31,30 +27,6 @@ public class MeetingDTO {
     public void setTheme(String theme) {
         this.theme = theme;
     }
-
-    public List<String> getParticipantNames() {
-        return participantNames;
-    }
-
-    public void setParticipantNames(List<String> participantNames) {
-        this.participantNames = participantNames;
-    }
-
-//    public String getDepartment() {
-//        return department;
-//    }
-//
-//    public void setDepartment(String department) {
-//        this.department = department;
-//    }
-
-//    public String getOrganizer() {
-//        return organizer;
-//    }
-//
-//    public void setOrganizer(String organizer) {
-//        this.organizer = organizer;
-//    }
 
     public int getCount() {
         return count;

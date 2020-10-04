@@ -1,16 +1,5 @@
 import React, { useState, useEffect } from "react";
 import DateRangePicker from "@wojtekmaj/react-daterange-picker";
-import DatePicker from "react-date-picker";
-
-function MyApp() {
-  const [value, onChange] = useState([new Date(), new Date()]);
-
-  return (
-    <div>
-      <DateRangePicker onChange={onChange} value={value} />
-    </div>
-  );
-}
 
 function MeetingsView(props) {
   const url = "http://127.0.0.1:8080";
@@ -22,7 +11,7 @@ function MeetingsView(props) {
   const [receivedEmployees, setReceivedEmployees] = useState([]);
   const [receivedDepartments, setReceivedDepartments] = useState([]);
 
-  const [dateRange, setDateRange] = useState([new Date(), new Date()]);
+  const [dateRange, setDateRange] = useState();
 
   useEffect(() => {
     getDepartmentsQuery();
@@ -30,8 +19,7 @@ function MeetingsView(props) {
     getEmployeesQuery();
   }, []);
 
-  const getMeetingsQuery = (event) => {
-    console.log("in meet querry");
+  const getMeetingsQuery = () => {
     const requestOptions = {
       method: "GET",
       headers: {
@@ -41,15 +29,12 @@ function MeetingsView(props) {
     fetch(url + "/meetings", requestOptions)
       .then((response) => response.json())
       .then((response) => {
-        console.log("receivedMeetings: ");
-        console.log(response);
         setReceivedMeetings(response);
       })
       .catch((err) => console.log("Error " + err));
   };
 
   const getDepartmentsQuery = (event) => {
-    console.log("in dep querry");
     const requestOptions = {
       method: "GET",
       headers: {
@@ -59,15 +44,12 @@ function MeetingsView(props) {
     fetch(url + "/departments", requestOptions)
       .then((response) => response.json())
       .then((response) => {
-        console.log("receivedDeps: ");
-        console.log(response);
         setReceivedDepartments(response);
       })
       .catch((err) => console.log("Error " + err));
   };
 
   const getEmployeesQuery = (event) => {
-    console.log("in empl querry");
     const requestOptions = {
       method: "GET",
       headers: {
@@ -78,8 +60,6 @@ function MeetingsView(props) {
       .then((response) => response.json())
       .then((response) => {
         setReceivedEmployees(response);
-        console.log("receivedEmpl: ");
-        console.log(response);
       })
       .catch((err) => console.log("Error " + err));
   };
@@ -90,24 +70,6 @@ function MeetingsView(props) {
     selectedEmployeeId = getIdFromSelect("empl-select");
     selectedDepartmentId = getIdFromSelect("dep-select");
 
-    var dateFrom = dateRange[0];
-    var dateTo = dateRange[1];
-
-    console.log("dateFROM: " + dateFrom);
-
-    console.log(
-      "params: " +
-        selectedEmployeeId +
-        " " +
-        selectedDepartmentId +
-        " " +
-        inputTheme +
-        " " +
-        dateFrom +
-        " " +
-        dateTo
-    );
-
     const requestOptions = {
       method: "GET",
       headers: {
@@ -115,16 +77,14 @@ function MeetingsView(props) {
       },
     };
 
-    console.log("formatted date: " + formatDate(dateFrom));
-
     const searchParams = new URLSearchParams();
-    // if (inputTheme !== "") {
-    //   searchParams.append("theme", inputTheme);
-    // }
-    // if (dateFrom !== null && dateTo !== null) {
-    //   searchParams.append("dateFrom", formatDate(dateFrom));
-    //   searchParams.append("dateTo", formatDate(dateTo));
-    // }
+    if (inputTheme !== null) {
+      searchParams.append("theme", inputTheme);
+    }
+    if (typeof dateRange != "undefined" && dateRange !== null) {
+      searchParams.append("dateFrom", formatDate(dateRange[0]));
+      searchParams.append("dateTo", formatDate(dateRange[1]));
+    }
     if (selectedDepartmentId !== null) {
       searchParams.append(
         "departmentId",
@@ -135,38 +95,13 @@ function MeetingsView(props) {
       searchParams.append("employeeId", Number.parseInt(selectedEmployeeId));
     }
 
-    console.log("search url : " + searchParams.toString());
-
     fetch(url + "/search?" + searchParams.toString(), requestOptions)
       .then((response) => {
-        //console.log(response.json());
         return response.json();
       })
       .then((response) => setReceivedMeetings(response))
       .catch((err) => console.log("Error " + err));
   };
-
-  function fetchNameById(array, id) {
-    for (let element of array) {
-      if (element.id === id) {
-        return element.name;
-      }
-    }
-  }
-
-  //   function changeDepartment(event) {
-  //     const selectedIndex = event.target.options.selectedIndex;
-  //     selectedDepartmentId = event.target.options[selectedIndex].getAttribute(
-  //       "data-key"
-  //     );
-  //   }
-
-  //   function changeEmployee(event) {
-  //     const selectedIndex = event.target.options.selectedIndex;
-  //     selectedEmployeeId = event.target.options[selectedIndex].getAttribute(
-  //       "data-key"
-  //     );
-  //   }
 
   function getIdFromSelect(selectId) {
     let select = document.getElementById(selectId);
@@ -190,62 +125,78 @@ function MeetingsView(props) {
     return [year, month, day].join("-") + " " + ["00", "00"].join(":");
   }
 
-  function changeDateRange(event) {
-    console.log("dateRange: " + event.target.value);
-    setDateRange(event.target.value);
-  }
-
   return (
     <form class="flexbox-vertical">
-      <label class="flexbox-horizontal">
-        <l1 class="bold-text">Тема</l1>
-        <input id="theme-input" type="text" />
-      </label>
+      <div class="flexbox-horizontal">
+        <div class="flexbox-vertical">
+          <label class="flexbox-horizontal">
+            <label class="bold-text">Тема</label>
+            <input id="theme-input" type="text" />
+          </label>
 
-      <label class="flexbox-horizontal">
-        <l1 class="bold-text">Время проведения: </l1>
-        <div>
-          <DateRangePicker onChange={setDateRange} value={dateRange} />
+          <label class="flexbox-horizontal">
+            <label class="bold-text">Время проведения: </label>
+            <div>
+              <DateRangePicker onChange={setDateRange} value={dateRange} />
+            </div>
+          </label>
         </div>
-      </label>
 
-      <label class="flexbox-horizontal">
-        <l1 class="bold-text">Подразделение</l1>
-        <select id="dep-select">
-          <option value="none" selected>
-            Подразделение
-          </option>
-          {receivedDepartments.map((department) => {
-            return <option id-key={department.id}> {department.name}</option>;
-          })}
-        </select>
-      </label>
+        <div class="flexbox-vertical">
+          <label class="flexbox-horizontal">
+            <label class="bold-text">Подразделение</label>
+            <select id="dep-select">
+              <option value="none" selected>
+                Подразделение
+              </option>
+              {receivedDepartments.map((department) => {
+                return (
+                  <option id-key={department.id}> {department.name}</option>
+                );
+              })}
+            </select>
+          </label>
 
-      <label class="flexbox-horizontal">
-        <l1 class="bold-text">С участием</l1>
-        <select id="empl-select">
-          <option value="none" selected>
-            Сотрудник
-          </option>
-          {receivedEmployees.map((employee) => {
-            return <option id-key={employee.id}> {employee.shortName}</option>;
-          })}
-        </select>
-      </label>
+          <label class="flexbox-horizontal">
+            <label class="bold-text">С участием</label>
+            <select id="empl-select">
+              <option value="none" selected>
+                Сотрудник
+              </option>
+              {receivedEmployees.map((employee) => {
+                return (
+                  <option id-key={employee.id}> {employee.shortName}</option>
+                );
+              })}
+            </select>
+          </label>
+        </div>
+      </div>
 
       <label>
         <button onClick={searchQuery}>Применить фильтр</button>
+        <div class="button-divider" />
         <button>Показать все</button>
       </label>
 
       <div>
         <table id="meetingTable">
           <tbody>
+            <tr>
+              <th>Время</th>
+              <th>Тема</th>
+              <th>Подразделение</th>
+              <th>Ответственный</th>
+              <th>Состав</th>
+            </tr>
             {receivedMeetings.map((meeting) => {
               return (
                 <tr key={meeting.id}>
                   <td>{meeting.time}</td>
-                  <td onClick={() => props.DisplayMeeting(meeting.id)}>
+                  <td
+                    class="link"
+                    onClick={() => props.DisplayMeeting(meeting.id)}
+                  >
                     {meeting.theme}
                   </td>
                   <td>{meeting.department.name}</td>
@@ -257,8 +208,9 @@ function MeetingsView(props) {
           </tbody>
         </table>
       </div>
-
-      <button onClick={() => props.DisplayMeeting()}>Добавить новое</button>
+      <label>
+        <button onClick={() => props.DisplayMeeting()}>Добавить новое</button>
+      </label>
     </form>
   );
 }

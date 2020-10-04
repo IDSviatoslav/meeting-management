@@ -8,8 +8,6 @@ public class DepartmentDTO {
     int id;
     String name;
 
-    //List<Person> members;
-
     List<EmployeeDTO> members;
 
     public int getId() {
@@ -35,11 +33,5 @@ public class DepartmentDTO {
     public void setMembers(List<EmployeeDTO> members) {
         this.members = members;
     }
-    //    public List<Person> getMembers() {
-//        return members;
-//    }
-//
-//    public void setMembers(List<Person> members) {
-//        this.members = members;
-//    }
+
 }
