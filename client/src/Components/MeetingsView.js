@@ -1,20 +1,28 @@
 import React, { useState, useEffect } from "react";
-//import DateRangePicker from "@wojtekmaj/react-daterange-picker";
+import DateRangePicker from "@wojtekmaj/react-daterange-picker";
 import DatePicker from "react-date-picker";
+
+function MyApp() {
+  const [value, onChange] = useState([new Date(), new Date()]);
+
+  return (
+    <div>
+      <DateRangePicker onChange={onChange} value={value} />
+    </div>
+  );
+}
 
 function MeetingsView(props) {
   const url = "http://127.0.0.1:8080";
-  var selectedDepartmentId = "";
-  var selectedEmployeeId = "";
-  var inputTheme = "";
-  var fromDate;
-  var toDate;
+  var selectedDepartmentId;
+  var selectedEmployeeId;
+  var inputTheme;
+
   const [receivedMeetings, setReceivedMeetings] = useState([]);
   const [receivedEmployees, setReceivedEmployees] = useState([]);
   const [receivedDepartments, setReceivedDepartments] = useState([]);
 
-  const [dateTo, setDateTo] = useState([new Date()]);
-  const [dateFrom, setDateFrom] = useState([new Date()]);
+  const [dateRange, setDateRange] = useState([new Date(), new Date()]);
 
   useEffect(() => {
     getDepartmentsQuery();
@@ -32,7 +40,11 @@ function MeetingsView(props) {
     };
     fetch(url + "/meetings", requestOptions)
       .then((response) => response.json())
-      .then((response) => setReceivedMeetings(response))
+      .then((response) => {
+        console.log("receivedMeetings: ");
+        console.log(response);
+        setReceivedMeetings(response);
+      })
       .catch((err) => console.log("Error " + err));
   };
 
@@ -46,7 +58,11 @@ function MeetingsView(props) {
     };
     fetch(url + "/departments", requestOptions)
       .then((response) => response.json())
-      .then((response) => setReceivedDepartments(response))
+      .then((response) => {
+        console.log("receivedDeps: ");
+        console.log(response);
+        setReceivedDepartments(response);
+      })
       .catch((err) => console.log("Error " + err));
   };
 
@@ -74,6 +90,11 @@ function MeetingsView(props) {
     selectedEmployeeId = getIdFromSelect("empl-select");
     selectedDepartmentId = getIdFromSelect("dep-select");
 
+    var dateFrom = dateRange[0];
+    var dateTo = dateRange[1];
+
+    console.log("dateFROM: " + dateFrom);
+
     console.log(
       "params: " +
         selectedEmployeeId +
@@ -94,19 +115,24 @@ function MeetingsView(props) {
       },
     };
 
+    console.log("formatted date: " + formatDate(dateFrom));
+
     const searchParams = new URLSearchParams();
-    if (inputTheme !== "") {
-      searchParams.append("theme", inputTheme);
-    }
-    if (dateFrom !== null && dateTo !== null) {
-      searchParams.append("dateFrom", formatDate(dateFrom));
-      searchParams.append("dateTo", formatDate(dateTo));
-    }
+    // if (inputTheme !== "") {
+    //   searchParams.append("theme", inputTheme);
+    // }
+    // if (dateFrom !== null && dateTo !== null) {
+    //   searchParams.append("dateFrom", formatDate(dateFrom));
+    //   searchParams.append("dateTo", formatDate(dateTo));
+    // }
     if (selectedDepartmentId !== null) {
-      searchParams.append("departmentId", selectedDepartmentId);
+      searchParams.append(
+        "departmentId",
+        Number.parseInt(selectedDepartmentId)
+      );
     }
-    if (selectedDepartmentId !== null) {
-      searchParams.append("employeeId", selectedEmployeeId);
+    if (selectedEmployeeId !== null) {
+      searchParams.append("employeeId", Number.parseInt(selectedEmployeeId));
     }
 
     console.log("search url : " + searchParams.toString());
@@ -119,25 +145,6 @@ function MeetingsView(props) {
       .then((response) => setReceivedMeetings(response))
       .catch((err) => console.log("Error " + err));
   };
-
-  function renderMeetingsTableData(props) {
-    return receivedMeetings.map((meeting, index) => {
-      console.log(receivedEmployees);
-      //console.log("depId " + receivedDepmeeting.departmentId);
-      //console.log(Object.keys(meeting.participantIds).length);
-      return (
-        <tr key={meeting.id}>
-          <td>{meeting.time}</td>
-          <td onClick={() => props.DisplayMeeting(meeting.id)}>
-            {meeting.theme}
-          </td>
-          <td>{fetchNameById(receivedDepartments, meeting.departmentId)}</td>
-          <td>{fetchNameById(receivedEmployees, meeting.organizerId)}</td>
-          <td>{Object.keys(meeting.participantIds).length}</td>
-        </tr>
-      );
-    });
-  }
 
   function fetchNameById(array, id) {
     for (let element of array) {
@@ -164,17 +171,28 @@ function MeetingsView(props) {
   function getIdFromSelect(selectId) {
     let select = document.getElementById(selectId);
     const selectedIndex = select.selectedIndex;
-    return select.options[selectedIndex].getAttribute("data-key");
+    return select.options[selectedIndex].getAttribute("id-key");
   }
 
   function formatDate(date) {
-    return (
-      date.getDate() +
-      "-" +
-      parseInt(date.getMonth() + 1) +
-      "-" +
-      date.getFullYear()
-    );
+    var d = new Date(date),
+      month = "" + (d.getMonth() + 1),
+      day = "" + d.getDate(),
+      year = d.getFullYear(),
+      hour = "" + d.getHours(),
+      minute = "" + d.getMinutes();
+
+    if (month.length < 2) month = "0" + month;
+    if (day.length < 2) day = "0" + day;
+    if (hour.length < 2) hour = "0" + hour;
+    if (minute.length < 2) minute = "0" + minute;
+
+    return [year, month, day].join("-") + " " + ["00", "00"].join(":");
+  }
+
+  function changeDateRange(event) {
+    console.log("dateRange: " + event.target.value);
+    setDateRange(event.target.value);
   }
 
   return (
@@ -185,26 +203,20 @@ function MeetingsView(props) {
       </label>
 
       <label class="flexbox-horizontal">
-        <l1 class="bold-text">Время проведения с</l1>
+        <l1 class="bold-text">Время проведения: </l1>
         <div>
-          <DatePicker
-            id="dateFrom-id"
-            value={dateFrom}
-            onChange={setDateFrom}
-          />
-          <l1 class="bold-text"> по </l1>
-          <DatePicker id="dateTo-id" value={dateTo} onChange={setDateTo} />
+          <DateRangePicker onChange={setDateRange} value={dateRange} />
         </div>
       </label>
 
       <label class="flexbox-horizontal">
         <l1 class="bold-text">Подразделение</l1>
         <select id="dep-select">
-          <option value="none" selected disabled hidden>
+          <option value="none" selected>
             Подразделение
           </option>
           {receivedDepartments.map((department) => {
-            return <option data-key={department.id}> {department.name}</option>;
+            return <option id-key={department.id}> {department.name}</option>;
           })}
         </select>
       </label>
@@ -212,13 +224,11 @@ function MeetingsView(props) {
       <label class="flexbox-horizontal">
         <l1 class="bold-text">С участием</l1>
         <select id="empl-select">
-          <option value="none" selected disabled hidden>
+          <option value="none" selected>
             Сотрудник
           </option>
           {receivedEmployees.map((employee) => {
-            return (
-              <option data-key={employee.id}> {employee.shortName}</option>
-            );
+            return <option id-key={employee.id}> {employee.shortName}</option>;
           })}
         </select>
       </label>
@@ -229,12 +239,26 @@ function MeetingsView(props) {
       </label>
 
       <div>
-        <l1 id="title">Участники</l1>
         <table id="meetingTable">
-          <tbody>{renderMeetingsTableData(props)}</tbody>
+          <tbody>
+            {receivedMeetings.map((meeting) => {
+              return (
+                <tr key={meeting.id}>
+                  <td>{meeting.time}</td>
+                  <td onClick={() => props.DisplayMeeting(meeting.id)}>
+                    {meeting.theme}
+                  </td>
+                  <td>{meeting.department.name}</td>
+                  <td>{meeting.organizer.shortName}</td>
+                  <td>{meeting.count}</td>
+                </tr>
+              );
+            })}
+          </tbody>
         </table>
       </div>
-      <button>Добавить новое</button>
+
+      <button onClick={() => props.DisplayMeeting()}>Добавить новое</button>
     </form>
   );
 }

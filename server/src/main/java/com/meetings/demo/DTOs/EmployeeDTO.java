@@ -1,30 +1,14 @@
 package com.meetings.demo.DTOs;
 
-import com.meetings.demo.entities.Employee;
+import javax.persistence.Embeddable;
 
-import java.time.LocalDate;
-
-import static java.time.temporal.ChronoUnit.YEARS;
-
+@Embeddable
 public class EmployeeDTO {
     int id;
     String name;
     String shortName;
     String department;
-    long age;
-
-    public static EmployeeDTO convertToDTO(Employee employee){
-        String surname = employee.getSurname();
-        String name = employee.getName();
-        String patronymic = employee.getPatronymic();
-        EmployeeDTO conversion = new EmployeeDTO();
-        conversion.setId(employee.getId());
-        conversion.setName(surname + " " + name + " " + patronymic);
-        conversion.setShortName(surname + " " + name.charAt(0) + '.' + patronymic.charAt(0));
-//        conversion.setDepartment(employee.getDepartment().toString());
-       // conversion.setAge(YEARS.between(employee.getDateOfBirth(), LocalDate.now()));
-        return conversion;
-    }
+    int age;
 
     public int getId() {
         return id;
@@ -58,11 +42,11 @@ public class EmployeeDTO {
         this.department = department;
     }
 
-    public long getAge() {
+    public int getAge() {
         return age;
     }
 
-    public void setAge(long age) {
+    public void setAge(int age) {
         this.age = age;
     }
 

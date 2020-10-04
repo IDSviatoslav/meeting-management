@@ -1,9 +1,12 @@
 package com.meetings.demo.entities;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
 
 @Entity
@@ -16,6 +19,7 @@ public class Meeting {
     @NotBlank
     String theme;
     @NotNull
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
     LocalDateTime time;
     @NotNull
     int departmentId;
@@ -23,20 +27,15 @@ public class Meeting {
     int organizerId;
 
     @ElementCollection
-    private Collection<Integer> participantIds;
+    private Collection<Integer> participantIds = new ArrayList<>();
 
-//    @OneToOne(cascade = CascadeType.ALL)
-//    @JoinColumn(name = "department_id")
-//    Department department;
-//
-//    @OneToOne (cascade = CascadeType.ALL)
-//    @JoinColumn(name = "organizer_id")
-//    Employee organizer;
-//
-//    @OneToMany(cascade = CascadeType.ALL)
-//    @JoinTable(name = "meeting_employees", joinColumns = @JoinColumn(name ="meeting_id"), inverseJoinColumns = @JoinColumn(name ="employee_id"))
-//    List<Employee> participants;
+    public int getId() {
+        return id;
+    }
 
+    public void setId(int id) {
+        this.id = id;
+    }
 
     public String getTheme() {
         return theme;
